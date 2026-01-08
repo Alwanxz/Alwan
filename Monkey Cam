@@ -1,0 +1,86 @@
+import cv2
+from cvzone.HandTrackingModule import HandDetector
+
+# --- buka kamera ---
+cap = cv2.VideoCapture(0)
+detector = HandDetector(detectionCon=0.8, maxHands=1)
+
+# --- load gambar monyet ---
+monkey = cv2.imread(r"C:\Users\HYPE AMD\Desktop\Py Monkey\Monkey\src\monkey.jpg")
+monkey2 = cv2.imread(r"C:\Users\HYPE AMD\Desktop\Py Monkey\Monkey\src\monkey2.jpeg")
+monkey3 = cv2.imread(r"C:\Users\HYPE AMD\Desktop\Py Monkey\Monkey\src\monkey3.jpeg")
+monkey4 = cv2.imread(r"C:\Users\HYPE AMD\Desktop\Py Monkey\Monkey\src\monkey4.jpeg")  # diam
+
+# --- pastikan semua gambar terbaca ---
+images = [monkey, monkey2, monkey3, monkey4]
+for i, img in enumerate(images, start=1):
+    if img is None:
+        print(f"⚠ Gambar monkey{i} tidak ditemukan!")
+    else:
+        images[i - 1] = cv2.resize(img, (300, 300))
+
+monkey, monkey2, monkey3, monkey4 = images
+
+# --- state supaya gambar tidak kedip ---
+current_monkey = monkey4
+
+# --- loop utama ---
+while True:
+    success, img = cap.read()
+    if not success:
+        print("❌ Kamera tidak ditemukan")
+        break
+
+    hands, img = detector.findHands(img)
+
+    if hands:
+        fingers = detector.fingersUp(hands[0])
+
+        # DEBUG (lihat hasil deteksi jari)
+        cv2.putText(
+            img, f"Fingers: {fingers}",
+            (10, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
+        )
+
+        # Gesture 1: hanya telunjuk
+        if fingers[1] == 1 and sum(fingers) == 1 and monkey is not None:
+            current_monkey = monkey
+            cv2.putText(img, "Gesture 1 Detected 🐒", (50, 350),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        # Gesture 2: hanya jempol
+        elif fingers[0] == 1 and sum(fingers) == 1 and monkey2 is not None:
+            current_monkey = monkey2
+            cv2.putText(img, "Gesture 2 Detected 🐵", (50, 350),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        # Gesture 3: semua jari terbuka
+        elif sum(fingers) == 5 and monkey3 is not None:
+            current_monkey = monkey3
+            cv2.putText(img, "Gesture 3 Detected 😱", (50, 350),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+    else:
+        # Tidak ada tangan → gambar diam
+        current_monkey = monkey4
+        cv2.putText(img, "No Hand Detected (Diam 💤)", (50, 350),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 255), 2)
+
+    # --- tampilkan gambar monyet ---
+    if current_monkey is not None:
+        img[0:300, 0:300] = current_monkey
+
+    # --- tampilkan kamera ---
+    cv2.imshow("Gesture Monkey", img)
+
+    # tekan 'q' buat keluar
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# --- tutup kamera ---
+cap.release()
+cv2.destroyAllWindows()
